@@ -1,6 +1,7 @@
 storage/
 venv/
 __pycache__/
+data/
 
 test.py
 *.py[col]
