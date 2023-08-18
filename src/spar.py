@@ -1,14 +1,14 @@
 import asyncio
 from datetime import datetime
-from functools import partial
 from itertools import chain
-import json
 import time
-from typing import Optional
 
-import aiohttp
 
-from src.helper import Manager, array_spread, asyncio_task_factory, fetch_gather
+from src.helper import (
+    Manager,
+    array_spread,
+    fetch_concurrent_thread,
+)
 
 URL = "https://spar-online.ru"
 ALL = "?SHOWALL_1=1"
@@ -49,7 +49,7 @@ def parse_links(page):
                 )
 
     for i in menu_list:
-        i.update(shop_name='spar')
+        i.update(shop_name="spar")
     return menu_list
 
 
@@ -73,27 +73,23 @@ def parse_cards(curr_page, item):
                 sub_category=item["sub_category"].lower(),  # check if validated ^
                 price=Manager.extract_price(prices[0]),
                 offer=Manager.extract_price(prices[1]) if len(prices) == 2 else None,
-                shopName=item['shop_name'],
+                shopName=item["shop_name"],
                 parse_date=datetime.now().strftime("%Y-%m-%d"),
             )
         )
     return _result
 
 
-async def parse_spar(result_queue: Optional[any] = None):
+def parse_spar():
     page = Manager.get_page(URL, "utf-8")
     menu = parse_links(page)
     result = []
-    product_pages = await fetch_gather(menu, 20)
+    product_pages = fetch_concurrent_thread(menu)
     for i in product_pages:
         result.append(parse_cards(i.get("content"), i))
-
     result = array_spread(result)
 
-    if result_queue:
-        await result_queue.put(result)
-    else:
-        return result
+    return result
 
 
 if __name__ == "__main__":

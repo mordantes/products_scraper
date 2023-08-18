@@ -2,6 +2,7 @@ storage/
 venv/
 __pycache__/
 
+test.py
 *.py[col]
 *.json
 .env

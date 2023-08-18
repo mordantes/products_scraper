@@ -1,11 +1,12 @@
 import asyncio
 from datetime import datetime
-from itertools import chain
-import json
 import time
 from typing import Optional
-import aiohttp
-from src.helper import Manager, array_spread, fetch_gather
+from src.helper import (
+    Manager,
+    array_spread,
+    fetch_concurrent_thread,
+)
 
 
 URL = "https://www.cifrus.ru"
@@ -75,7 +76,7 @@ def get_true_hrefs(page: dict):
 def parse_cards(page):
     result = list()
     parse_date = datetime.now().strftime("%Y-%m-%d")
-    cards = page.get('content').find_all(class_="product-thumb")
+    cards = page.get("content").find_all(class_="product-thumb")
     for products in cards:
         product_name = products.find(class_="name").find("a")
         product_price_old = products.find(class_="price-old")
@@ -98,25 +99,26 @@ def parse_cards(page):
     return result
 
 
-async def parse_cifrus(result_queue: Optional[any] = None):
+def parse_cifrus(result_queue: Optional[any] = None):
     # initally get left-side menu items with their sub_items values
     # into one huge list of urls like [{ href : '...', category : '[main_name]', sub_category : '[sub_item_name]''}]
     hrefs = list()
     menu = get_menu(URL)
-    sub_pages = await fetch_gather(menu, 25)
+
+    sub_pages = fetch_concurrent_thread(menu)
 
     extracted_sub_hrefs = [get_true_hrefs(item) for item in sub_pages]
 
     hrefs = array_spread(extracted_sub_hrefs)
 
-    pages = await fetch_gather(hrefs, 15)
+    pages = fetch_concurrent_thread(hrefs)
 
     data = [parse_cards(item) for item in pages]
 
     data = array_spread(data)
 
     if result_queue:
-        await result_queue.put(data)
+        result_queue.put(data)
     else:
         return data
 

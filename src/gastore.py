@@ -1,13 +1,13 @@
 import asyncio
 from datetime import datetime
 from itertools import chain
-import json
 import time
-from typing import Optional
 
-import aiohttp
-
-from src.helper import Manager, asyncio_task_factory, array_spread, fetch_gather
+from src.helper import (
+    Manager,
+    array_spread,
+    fetch_concurrent_thread,
+)
 
 URL = "https://gastore.ru"
 
@@ -31,19 +31,17 @@ def get_menu():
                 )
             )
     for i in menu_links:
-        i.update(shop_name='gastore')
+        i.update(shop_name="gastore")
     return menu_links
 
 
-
 def parse_from_link(page, item):
-
     result: list = list()
     page_items = page.select("div.item_info")
     products = list()
     products_dto = list()
     for card in page_items:
-        try :
+        try:
             products.append(
                 (
                     card.select("div.item-title")[0].get_text().replace("\n", ""),
@@ -55,10 +53,10 @@ def parse_from_link(page, item):
                     ),
                 )
             )
-        except :
+        except:
             print(card.select("div.price"))
-            raise ValueError(f'Not valid card {page_items}')
-        
+            raise ValueError(f"Not valid card {page_items}")
+
     for prod in products:
         products_dto.append(
             dict(
@@ -75,21 +73,18 @@ def parse_from_link(page, item):
     return result
 
 
-async def parse_gastore(result_queue: Optional[any] = None):
+def parse_gastore():
     try:
         menu = get_menu()
         result = []
-        product_pages = await fetch_gather(menu, 20)
+        product_pages = fetch_concurrent_thread(menu)
         for item in product_pages:
             result.append(parse_from_link(item.get("content"), item))
 
         result = array_spread(result)
 
-        if result_queue:
-            await result_queue.put(result)
-        else:
-            return result
-    except BaseException as e :
+        return result
+    except BaseException as e:
         print("Error", str(e))
         raise e
 

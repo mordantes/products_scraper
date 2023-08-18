@@ -1,18 +1,19 @@
 import asyncio
 from datetime import datetime
-from itertools import chain
 from json import dump
 import os
-from queue import Empty
+import time
 from typing import Optional
 from bs4 import BeautifulSoup
 import pandas as pd
 import re
 import requests
-import httpx
 
 from clickhouse_driver import Client
 from config import BASE_DIR, C_DB, C_HOST, C_TABLE, C_USER, C_PORT, C_PWD
+
+
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 
 class Manager:
@@ -25,7 +26,7 @@ class Manager:
             raise ValueError("error")
         data = requests.get(url)
         data.encoding = encoding if encoding is not None else Manager._encoding
-        return BeautifulSoup(data.text, features="html.parser")
+        return BeautifulSoup(data.text, features="lxml")
 
     @staticmethod
     def extract_price(val: str):
@@ -93,68 +94,48 @@ class Manager:
             print(str(e))
 
 
-async def asyncio_task_factory(items: list, callback: callable, *args):
-    """Create a async factory using each items to callback fn"""
-    tasks = []
-    done = []
-
-    for i in items:
-        tasks.append(asyncio.create_task(callback(i, *args)))
-
-        if len(tasks) == 20:
-            res = await asyncio.gather(*tasks)
-            done = [*done, *res]
-            tasks = list()
-
-    return res
-
-
-async def get_data(
-    client:httpx.AsyncClient,
+def get_data_sync(
     url: dict,
 ):
-    resp = await client.get(url.get('href'))
+    resp = requests.get(url.get("href"))
 
-    # print(resp.status_code, url.get('href'))
     if resp.status_code == 200:
+        resp.encoding = "utf-8"
         url.update(content=resp.text)
+        print(f'Done result {url.get("href")}')
         return url
-    elif resp.status_code == 404 :
+    elif resp.status_code == 404:
         return None
-    else :
-        return await get_data(client, url)
+    else:
+        print(f"Error when try to get data, retry...")
+        time.sleep(0.1)
+        return get_data_sync(url)
 
 
-async def fetch_gather(url_list: list[dict], chunksize: Optional[int] = 5):
-    tasks = []
-    done = []
-    timeout = httpx.Timeout(None, connect=5)
-    async with httpx.AsyncClient(verify=False,timeout=timeout ) as client:
-        for idx, i in enumerate(url_list, start=1):
+def fetch_concurrent_process(url_list: list[dict]):
+    with ProcessPoolExecutor(os.cpu_count() - 1) as worker:
+        done = worker.map(get_data_sync, url_list)
 
-            tasks.append(asyncio.create_task(get_data(client, i)))
+    done = [item for item in done if item is not None]
 
-            if len(tasks) == chunksize or idx == len(url_list):
-                temp_result = await asyncio.gather(*tasks)
-                print(f"Progress tasks/total - {idx}/{len(url_list)}, shopname -> {i.get('shop_name')}")
-                temp_result = [item for item in temp_result if item is not None]
-                done = [*done, *temp_result]
-                tasks = list()
-    
     for item in done:
-        page = BeautifulSoup(item.get('content'), features="lxml")
+        page = BeautifulSoup(item.get("content"), features="lxml")
         item.update(content=page)
 
     return done
 
 
-async def fetch_all(s, items: list[dict]):
-    tasks = []
-    for url in items:
-        task = asyncio.create_task(fetch_gather(s, url))
-        tasks.append(task)
-    res = await asyncio.gather(*tasks)
-    return res
+def fetch_concurrent_thread(url_list: list[dict]):
+    with ThreadPoolExecutor(os.cpu_count() - 1) as worker:
+        done = worker.map(get_data_sync, url_list)
+
+    done = [item for item in done if item is not None]
+
+    for item in done:
+        page = BeautifulSoup(item.get("content"), features="lxml")
+        item.update(content=page)
+
+    return done
 
 
 def array_spread(l: list) -> list:
@@ -162,7 +143,7 @@ def array_spread(l: list) -> list:
     for t in l:
         if isinstance(t, list):
             result = [*result, *t]
-        else :
+        else:
             result.append(t)
     return result
 
@@ -170,14 +151,3 @@ def array_spread(l: list) -> list:
 def run_async_function(async_func, result_queue):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(async_func(result_queue))
-
-
-def get_results(result_queue):
-    results = []
-    while True:
-        try:
-            result = result_queue.get()
-            results.append(result)
-        except Empty:
-            break
-    return results
