@@ -8,8 +8,9 @@ from src.helper import (
     fetch_concurrent_thread,
 )
 
-
+# main url of shop
 URL = "https://www.cifrus.ru"
+# list of menu items that deprecated to parse content
 _deprecated = [
     "/catalog/1",
     "/catalog/3",
@@ -20,7 +21,16 @@ _deprecated = [
 ]
 
 
-def get_menu(url) -> list[dict]:
+def get_menu(url:str) -> list[dict]:
+    """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress 
+    that will be a path to product cards
+
+    Args:
+        url (str): target URL
+
+    Returns:
+        list[dict]: result dict with ``href`` , ``sub_category``, ``category``, ``shop_name`` keys
+    """
     page = Manager.get_page(url)
     menu_elements = page.find_all(class_="dropdown-submenu")
     menu_items = list()
@@ -50,7 +60,16 @@ def get_menu(url) -> list[dict]:
     return menu_items
 
 
-def get_true_hrefs(page: dict):
+def get_true_hrefs(page: dict) -> list[dict] | dict:
+    """For this type of shop need to parse every menu items by a subcategory menu items 
+    to obtain true href that will display product's cards
+
+    Args:
+        page (dict): result dict from ``get_menu`` funct  
+
+    Returns:
+        list[dict] | dict: if given url content have left-side menu, return type is list, otherwhere single dict item
+    """
     pagination = list(
         category_item
         for category_item in page.get("content").find_all(class_="list-group-item")
@@ -73,7 +92,15 @@ def get_true_hrefs(page: dict):
         return page
 
 
-def parse_cards(page):
+def parse_cards(page) -> list[dict]:
+    """Obtain product's categories from a given page 
+
+    Args:
+        page (dict): input object
+
+    Returns:
+        list[dict]: all finded card-object item parameters
+    """
     result = list()
     parse_date = datetime.now().strftime("%Y-%m-%d")
     cards = page.get("content").find_all(class_="product-thumb")
@@ -99,7 +126,11 @@ def parse_cards(page):
     return result
 
 
-def parse_cifrus(result_queue: Optional[any] = None):
+def parse_cifrus():
+    """Main func to obtain all items from web-site
+    Returns:
+        _type_: list[dict]
+    """
     # initally get left-side menu items with their sub_items values
     # into one huge list of urls like [{ href : '...', category : '[main_name]', sub_category : '[sub_item_name]''}]
     hrefs = list()
@@ -117,11 +148,7 @@ def parse_cifrus(result_queue: Optional[any] = None):
 
     data = array_spread(data)
 
-    if result_queue:
-        result_queue.put(data)
-    else:
-        return data
-
+    return data 
 
 if __name__ == "__main__":
     start = time.time()

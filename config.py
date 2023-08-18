@@ -12,3 +12,14 @@ C_PORT = os.environ.get("C_PORT")
 C_DB = os.environ.get("C_DB")
 C_TABLE = os.environ.get("C_TABLE")
 BASE_DIR = os.environ.get("BASE_DIR")
+
+
+result_columns = [
+    "name",
+    "price",
+    "offer",
+    "shop_name",
+    "category",
+    "sub_category",
+    "parse_date",
+]

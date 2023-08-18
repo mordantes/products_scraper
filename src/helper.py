@@ -1,9 +1,8 @@
-import asyncio
 from datetime import datetime
 from json import dump
 import os
 import time
-from typing import Optional
+from typing import Callable, Optional
 from bs4 import BeautifulSoup
 import pandas as pd
 import re
@@ -17,16 +16,9 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 
 class Manager:
-    _encoding = "cp1251"
+    """Class with usefull common functions
+    """
     _ext = ".json"
-
-    @staticmethod
-    def get_page(url: str, encoding: Optional[str] = None):
-        if len(url) == 0:
-            raise ValueError("error")
-        data = requests.get(url)
-        data.encoding = encoding if encoding is not None else Manager._encoding
-        return BeautifulSoup(data.text, features="lxml")
 
     @staticmethod
     def extract_price(val: str):
@@ -44,6 +36,12 @@ class Manager:
 
     @staticmethod
     def save_to_file(data: list[dict], shop_name: str):
+        """Save list of parsed items into file 
+
+        Args:
+            data (list[dict]): input list
+            shop_name (str): _description_
+        """
         os.path.exists(os.path.join(BASE_DIR)) or os.mkdir(BASE_DIR)
 
         save_name = "_".join([shop_name, datetime.now().strftime("%Y-%m-%d")])
@@ -60,6 +58,10 @@ class Manager:
 
     @staticmethod
     def reverse_date(df: pd.DataFrame):
+        """Dataframe apply function to reverse old format files date value 
+        Args:
+            df (pd.DataFrame): input dataframe
+        """
         def reverse(x: any):
             pd = x["parse_date"]
             newd = pd.split("-")
@@ -71,12 +73,23 @@ class Manager:
 
     @staticmethod
     def to_csv(df: pd.DataFrame):
+        """Save input dataframe into .csv file , by default ``res.csv`` name
+
+        Args:
+            df (pd.DataFrame): input dataframe
+        """
         all_data = pd.read_csv("res.csv")
         res = pd.concat([all_data, df])
         res.to_csv("res.csv")
 
+    #!TODO unwrap normalize method into separate function 
     @staticmethod
     def to_click(df: pd.DataFrame):
+        """Load into Clickhouse DWH input dataframe
+
+        Args:
+            df (pd.DataFrame): input dataframe
+        """
         try:
             cli = Client(
                 user=C_USER, password=C_PWD, host=C_HOST, port=C_PORT, database=C_DB
@@ -96,7 +109,15 @@ class Manager:
 
 def get_data_sync(
     url: dict,
-):
+)-> Optional[dict]:
+    """Get text data from given url page (!recursive if status responce <400)
+
+    Args:
+        url (dict): item object, property 'href' in neccessary
+
+    Returns:
+        dict: append property 'content' with html text data from page
+    """
     resp = requests.get(url.get("href"))
 
     if resp.status_code == 200:
@@ -112,7 +133,15 @@ def get_data_sync(
         return get_data_sync(url)
 
 
-def fetch_concurrent_process(url_list: list[dict]):
+def fetch_concurrent_process(url_list: list[dict]) -> list[dict]:
+    """Run scraper func by every item in list in process pool 
+
+    Args:
+        url_list (list[dict]): neccessary dict keys - 'href'
+
+    Returns:
+        list[dict]: append property 'content' with html data from page and return updated list of dicts
+    """
     with ProcessPoolExecutor(os.cpu_count() - 1) as worker:
         done = worker.map(get_data_sync, url_list)
 
@@ -125,7 +154,15 @@ def fetch_concurrent_process(url_list: list[dict]):
     return done
 
 
-def fetch_concurrent_thread(url_list: list[dict]):
+def fetch_concurrent_thread(url_list: list[dict]) -> list[dict]:
+    """Run scraper func by every item in list in thread pool 
+
+    Args:
+        url_list (list[dict]): neccessary dict keys - 'href'
+
+    Returns:
+        list[dict]: append property 'content' with html data from page and return updated list of dicts
+    """
     with ThreadPoolExecutor(os.cpu_count() - 1) as worker:
         done = worker.map(get_data_sync, url_list)
 
@@ -138,7 +175,15 @@ def fetch_concurrent_thread(url_list: list[dict]):
     return done
 
 
-def array_spread(l: list) -> list:
+def array_spread(l: list[list]) -> list:
+    """Custom spread list of lists into single one
+
+    Args:
+        l (list): input list[list]
+
+    Returns:
+        list: result list
+    """
     result = []
     for t in l:
         if isinstance(t, list):
@@ -148,6 +193,14 @@ def array_spread(l: list) -> list:
     return result
 
 
-def run_async_function(async_func, result_queue):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_func(result_queue))
+
+def make_executable(func:Callable):
+    """Function-hack to pass into PoolExecutor list of functions insted of list of items to execute by each of them
+
+    Args:
+        func (Callable): function to execute
+
+    Returns:
+        <T>: return result from executed function
+    """
+    return func()

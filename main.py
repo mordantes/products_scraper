@@ -3,22 +3,12 @@ import time
 import pandas as pd
 from src.cifrus import parse_cifrus
 from src.gastore import parse_gastore
-from src.helper import Manager, array_spread
+from src.helper import Manager, array_spread, make_executable
 from src.spar import parse_spar
-
-columns = [
-    "name",
-    "price",
-    "offer",
-    "shop_name",
-    "category",
-    "sub_category",
-    "parse_date",
-]
+from config import result_columns
 
 
-def make_executable(func):
-    return func()
+
 
 
 def main():
@@ -29,7 +19,7 @@ def main():
 
     spreaded_results = array_spread(list_results)
 
-    df = pd.DataFrame(spreaded_results, columns=columns)
+    df = pd.DataFrame(spreaded_results, columns=result_columns)
 
     Manager.save_to_file(array_spread(spreaded_results), "all_in_one")
 
