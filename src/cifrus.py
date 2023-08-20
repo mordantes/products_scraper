@@ -1,12 +1,8 @@
-import asyncio
 from datetime import datetime
 import time
-from typing import Optional
-from src.helper import (
-    Manager,
-    array_spread,
-    fetch_concurrent_thread,
-)
+
+from bs4 import BeautifulSoup
+from src.helper import Manager, array_spread, fetch_concurrent_thread, get_data_sync
 
 # main url of shop
 URL = "https://www.cifrus.ru"
@@ -21,8 +17,8 @@ _deprecated = [
 ]
 
 
-def get_menu(url:str) -> list[dict]:
-    """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress 
+def get_menu(url: str) -> list[dict]:
+    """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress
     that will be a path to product cards
 
     Args:
@@ -31,7 +27,8 @@ def get_menu(url:str) -> list[dict]:
     Returns:
         list[dict]: result dict with ``href`` , ``sub_category``, ``category``, ``shop_name`` keys
     """
-    page = Manager.get_page(url)
+    page = get_data_sync({"href": url})
+    page = BeautifulSoup(page.get("content"), features="lxml")
     menu_elements = page.find_all(class_="dropdown-submenu")
     menu_items = list()
     for item in menu_elements:
@@ -61,11 +58,11 @@ def get_menu(url:str) -> list[dict]:
 
 
 def get_true_hrefs(page: dict) -> list[dict] | dict:
-    """For this type of shop need to parse every menu items by a subcategory menu items 
+    """For this type of shop need to parse every menu items by a subcategory menu items
     to obtain true href that will display product's cards
 
     Args:
-        page (dict): result dict from ``get_menu`` funct  
+        page (dict): result dict from ``get_menu`` funct
 
     Returns:
         list[dict] | dict: if given url content have left-side menu, return type is list, otherwhere single dict item
@@ -92,8 +89,8 @@ def get_true_hrefs(page: dict) -> list[dict] | dict:
         return page
 
 
-def parse_cards(page) -> list[dict]:
-    """Obtain product's categories from a given page 
+def parse_card(page) -> list[dict]:
+    """Obtain product's categories from a given page
 
     Args:
         page (dict): input object
@@ -127,30 +124,34 @@ def parse_cards(page) -> list[dict]:
 
 
 def parse_cifrus():
-    """Main func to obtain all items from web-site
+    """
+    Main func to obtain all items from cifrus.ru web-site
+
     Returns:
-        _type_: list[dict]
+        list[dict]: parsed product's cards of all items that exists in shop
     """
     # initally get left-side menu items with their sub_items values
     # into one huge list of urls like [{ href : '...', category : '[main_name]', sub_category : '[sub_item_name]''}]
     hrefs = list()
+    # get list of dropdown menu items
     menu = get_menu(URL)
-
+    # we dedicate that every page from menu have an additional one in their content
+    # and we must to test it and get sub_menu arrays from every page
     sub_pages = fetch_concurrent_thread(menu)
-
+    # iter by fetched items and get href of every subcategory_item to result list
     extracted_sub_hrefs = [get_true_hrefs(item) for item in sub_pages]
-
+    # extract list's from list into new single one
     hrefs = array_spread(extracted_sub_hrefs)
-
+    # get content from all pages from ``href`` list
     pages = fetch_concurrent_thread(hrefs)
-
-    data = [parse_cards(item) for item in pages]
-
+    # parse product's categories into result list
+    data = [parse_card(item) for item in pages]
+    # another one spread list of lists into single result one
     data = array_spread(data)
+    return data
 
-    return data 
 
 if __name__ == "__main__":
     start = time.time()
-    asyncio.run(parse_cifrus())
+    parse_cifrus()
     print(f"Done for {time.time() - start } ")

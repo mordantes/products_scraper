@@ -7,10 +7,7 @@ from src.helper import Manager, array_spread, make_executable
 from src.spar import parse_spar
 from config import result_columns
 
-
-
-
-
+# TODO  -> add pydantic !!!!!!!!!!!!!!!!!!!!!!!!
 def main():
     with ProcessPoolExecutor(3) as w:
         res = w.map(make_executable, [parse_gastore, parse_spar, parse_cifrus])

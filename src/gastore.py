@@ -1,26 +1,41 @@
-import asyncio
 from datetime import datetime
 from itertools import chain
 import time
+
+from bs4 import BeautifulSoup
 
 from src.helper import (
     Manager,
     array_spread,
     fetch_concurrent_thread,
+    get_data_sync,
 )
 
+# main ulr of a shop
 URL = "https://gastore.ru"
 
 
 def get_menu():
-    page = Manager.get_page(URL, "utf-8")
+    """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress
+    that will be a path to product cards
+
+    Args:
+        url (str): target URL
+
+    Returns:
+        list[dict]: result dict with ``href`` , ``sub_category``, ``category``, ``shop_name`` keys
+    """
+    page = get_data_sync({"href": URL})
+    page = BeautifulSoup(page.get("content"), features="lxml")
+
     menu_items = [
         (i.attrs["href"], i.select("span.name")[0].get_text())
         for i in page.select("div.catalog_block>ul>li>a")
     ]
     menu_links = list()
     for sub_category in menu_items:
-        sub_menu_data = Manager.get_page(URL + sub_category[0], encoding="utf-8")
+        sub_menu_data = get_data_sync({"href": URL + sub_category[0]})
+        sub_menu_data = BeautifulSoup(sub_menu_data.get("content"), features="lxml")
         sub_menu_links = sub_menu_data.select("div.item>div.name>a")
         for item in sub_menu_links:
             menu_links.append(
@@ -35,8 +50,17 @@ def get_menu():
     return menu_links
 
 
-def parse_from_link(page, item):
+def parse_card(item):
+    """Obtain product's categories from a given page
+
+    Args:
+        page (dict): input object
+
+    Returns:
+        list[dict]: all finded card-object item parameters
+    """
     result: list = list()
+    page = item.get("content")
     page_items = page.select("div.item_info")
     products = list()
     products_dto = list()
@@ -54,8 +78,8 @@ def parse_from_link(page, item):
                 )
             )
         except:
-            print(card.select("div.price"))
-            raise ValueError(f"Not valid card {page_items}")
+            print(str(ValueError(f"Not valid card {card}")))
+            continue
 
     for prod in products:
         products_dto.append(
@@ -74,22 +98,27 @@ def parse_from_link(page, item):
 
 
 def parse_gastore():
-    try:
-        menu = get_menu()
-        result = []
-        product_pages = fetch_concurrent_thread(menu)
-        for item in product_pages:
-            result.append(parse_from_link(item.get("content"), item))
+    """
+    Main func to obtain all items from gastore.ru web-site
 
-        result = array_spread(result)
+    Returns:
+        list[dict]: parsed product's cards of all items that exists in shop
+    """
+    result = []
+    # let list of category-url pages to get product's datafrom them
+    menu = get_menu()
+    # fetch a html-content from them
+    product_pages = fetch_concurrent_thread(menu)
+    # parse product's data from html
+    for item in product_pages:
+        result.append(parse_card(item))
+    # spread list of lists to single one
+    result = array_spread(result)
 
-        return result
-    except BaseException as e:
-        print("Error", str(e))
-        raise e
+    return result
 
 
 if __name__ == "__main__":
     start = time.time()
-    asyncio.run(parse_gastore())
+    parse_gastore()
     print(f"Done for {time.time() - start } ")

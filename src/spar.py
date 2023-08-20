@@ -1,20 +1,32 @@
-import asyncio
 from datetime import datetime
 from itertools import chain
 import time
+
+from bs4 import BeautifulSoup
 
 
 from src.helper import (
     Manager,
     array_spread,
     fetch_concurrent_thread,
+    get_data_sync,
 )
 
 URL = "https://spar-online.ru"
 ALL = "?SHOWALL_1=1"
 
 
-def parse_links(page):
+def get_menu(page: dict):
+    """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress
+    that will be a path to product cards
+
+    Args:
+        page (dict): target object
+
+    Returns:
+        list[dict]: result dict with ``href`` , ``sub_category``, ``category``, ``shop_name`` keys
+    """
+    page = BeautifulSoup(page.get("content"), features="lxml")
     menu_block = page.select("ul.menu>li")
     menu_list = list()
 
@@ -53,8 +65,17 @@ def parse_links(page):
     return menu_list
 
 
-def parse_cards(curr_page, item):
+def parse_cards(item):
+    """Obtain product's categories from a given page
+
+    Args:
+        item (dict): input object
+
+    Returns:
+        list[dict]: all finded card-object item parameters
+    """
     _result = []
+    curr_page = item.get('content')
     product_cards = curr_page.select("div.item_info")
     for product in product_cards:
         name = product.select_one("div.item-title>a>span").get_text()
@@ -81,18 +102,26 @@ def parse_cards(curr_page, item):
 
 
 def parse_spar():
-    page = Manager.get_page(URL, "utf-8")
-    menu = parse_links(page)
-    result = []
-    product_pages = fetch_concurrent_thread(menu)
-    for i in product_pages:
-        result.append(parse_cards(i.get("content"), i))
-    result = array_spread(result)
+    """
+    Main func to obtain all items from cifrus.ru web-site
 
+    Returns:
+        list[dict]: parsed product's cards of all items that exists in shop
+    """
+    # get main page html-data
+    page = get_data_sync({"href": URL})
+    # parse from html list of category-URL's
+    menu = get_menu(page)
+    # fetch html content from every URL's menu
+    product_pages = fetch_concurrent_thread(menu)
+    # parse from list of html-content page's product's data
+    result = [parse_cards(i) for i in product_pages]
+    # spread list of lists into single one
+    result = array_spread(result)
     return result
 
 
 if __name__ == "__main__":
     t0 = time.perf_counter()
-    asyncio.run(parse_spar())
+    parse_spar()
     print(f"Done for {time.perf_counter() - t0 } ")

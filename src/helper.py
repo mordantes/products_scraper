@@ -16,8 +16,8 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 
 class Manager:
-    """Class with usefull common functions
-    """
+    """Class with usefull common functions"""
+
     _ext = ".json"
 
     @staticmethod
@@ -36,7 +36,7 @@ class Manager:
 
     @staticmethod
     def save_to_file(data: list[dict], shop_name: str):
-        """Save list of parsed items into file 
+        """Save list of parsed items into file
 
         Args:
             data (list[dict]): input list
@@ -58,10 +58,11 @@ class Manager:
 
     @staticmethod
     def reverse_date(df: pd.DataFrame):
-        """Dataframe apply function to reverse old format files date value 
+        """Dataframe apply function to reverse old format files date value
         Args:
             df (pd.DataFrame): input dataframe
         """
+
         def reverse(x: any):
             pd = x["parse_date"]
             newd = pd.split("-")
@@ -82,7 +83,7 @@ class Manager:
         res = pd.concat([all_data, df])
         res.to_csv("res.csv")
 
-    #!TODO unwrap normalize method into separate function 
+    #!TODO unwrap normalize method into separate function
     @staticmethod
     def to_click(df: pd.DataFrame):
         """Load into Clickhouse DWH input dataframe
@@ -109,7 +110,7 @@ class Manager:
 
 def get_data_sync(
     url: dict,
-)-> Optional[dict]:
+) -> Optional[dict]:
     """Get text data from given url page (!recursive if status responce <400)
 
     Args:
@@ -134,7 +135,7 @@ def get_data_sync(
 
 
 def fetch_concurrent_process(url_list: list[dict]) -> list[dict]:
-    """Run scraper func by every item in list in process pool 
+    """Run scraper func by every item in list in process pool
 
     Args:
         url_list (list[dict]): neccessary dict keys - 'href'
@@ -155,7 +156,7 @@ def fetch_concurrent_process(url_list: list[dict]) -> list[dict]:
 
 
 def fetch_concurrent_thread(url_list: list[dict]) -> list[dict]:
-    """Run scraper func by every item in list in thread pool 
+    """Run scraper func by every item in list in thread pool
 
     Args:
         url_list (list[dict]): neccessary dict keys - 'href'
@@ -193,8 +194,7 @@ def array_spread(l: list[list]) -> list:
     return result
 
 
-
-def make_executable(func:Callable):
+def make_executable(func: Callable):
     """Function-hack to pass into PoolExecutor list of functions insted of list of items to execute by each of them
 
     Args:
