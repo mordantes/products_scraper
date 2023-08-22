@@ -132,7 +132,6 @@ def parse_cifrus():
     """
     # initally get left-side menu items with their sub_items values
     # into one huge list of urls like [{ href : '...', category : '[main_name]', sub_category : '[sub_item_name]''}]
-    hrefs = list()
     # get list of dropdown menu items
     menu = get_menu(URL)
     # we dedicate that every page from menu have an additional one in their content

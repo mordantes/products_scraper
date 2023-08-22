@@ -122,8 +122,14 @@ def get_data_sync(
     resp = requests.get(url.get("href"))
 
     if resp.status_code == 200:
-        resp.encoding = "utf-8"
-        url.update(content=resp.text)
+        text = resp.text
+        # print(resp.encoding)
+        text = text.encode(resp.encoding)
+        # if resp.encoding == 'cp1251' :
+        #     text = text.encode('ISO-8859-1')
+        # else :
+        #     text = text.encode('utf-8')
+        url.update(content=text)
         print(f'Done result {url.get("href")}')
         return url
     elif resp.status_code == 404:

@@ -8,3 +8,5 @@ test.py
 *.json
 .env
 to_click.py
+*.xml
+/*idea

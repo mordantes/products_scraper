@@ -9,18 +9,22 @@ from config import result_columns
 
 # TODO  -> add pydantic !!!!!!!!!!!!!!!!!!!!!!!!
 def main():
-    with ProcessPoolExecutor(3) as w:
-        res = w.map(make_executable, [parse_gastore, parse_spar, parse_cifrus])
 
-    list_results = list(res)
-
-    spreaded_results = array_spread(list_results)
-
-    df = pd.DataFrame(spreaded_results, columns=result_columns)
-
-    Manager.save_to_file(array_spread(spreaded_results), "all_in_one")
-
-    # Manager.to_click(df)
+    cf = parse_cifrus()
+    # print(cf)
+    Manager.save_to_file(cf, "all_in_one")
+    # with ProcessPoolExecutor(3) as w:
+    #     res = w.map(make_executable, [parse_gastore, parse_spar, parse_cifrus])
+    #
+    # list_results = list(res)
+    #
+    # spreaded_results = array_spread(list_results)
+    #
+    # df = pd.DataFrame(spreaded_results, columns=result_columns)
+    #
+    # Manager.save_to_file(array_spread(spreaded_results), "all_in_one")
+    #
+    # # Manager.to_click(df)
 
 
 if __name__ == "__main__":
