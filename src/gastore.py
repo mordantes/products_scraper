@@ -98,24 +98,30 @@ def parse_card(item):
 
 
 def parse_gastore():
-    """
-    Main func to obtain all items from gastore.ru web-site
+    try:
+        """
+        Main func to obtain all items from gastore.ru web-site
 
-    Returns:
-        list[dict]: parsed product's cards of all items that exists in shop
-    """
-    result = []
-    # let list of category-url pages to get product's datafrom them
-    menu = get_menu()
-    # fetch a html-content from them
-    product_pages = fetch_concurrent_thread(menu)
-    # parse product's data from html
-    for item in product_pages:
-        result.append(parse_card(item))
-    # spread list of lists to single one
-    result = array_spread(result)
+        Returns:
+            list[dict]: parsed product's cards of all items that exists in shop
+        """
+        result = []
+        # let list of category-url pages to get product's datafrom them
+        menu = get_menu()
+        # fetch a html-content from them
+        product_pages = fetch_concurrent_thread(menu)
+        # parse product's data from html
+        for item in product_pages:
+            result.append(parse_card(item))
+        # spread list of lists to single one
+        result = array_spread(result)
 
-    return result
+        return result
+    # sometimes eraise errors, to categorise it BE ><
+    except BaseException as e :
+        print(str(e))
+        raise e
+   
 
 
 if __name__ == "__main__":
