@@ -19,9 +19,6 @@ def get_menu():
     """Function to get list of category items (dropdown menu commonly) from a page and obtaint their URL adress
     that will be a path to product cards
 
-    Args:
-        url (str): target URL
-
     Returns:
         list[dict]: result dict with ``href`` , ``sub_category``, ``category``, ``shop_name`` keys
     """
@@ -54,7 +51,7 @@ def parse_card(item):
     """Obtain product's categories from a given page
 
     Args:
-        page (dict): input object
+        item (dict): input object
 
     Returns:
         list[dict]: all finded card-object item parameters
