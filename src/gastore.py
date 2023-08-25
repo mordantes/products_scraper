@@ -115,10 +115,9 @@ def parse_gastore():
 
         return result
     # sometimes eraise errors, to categorise it BE ><
-    except BaseException as e :
+    except BaseException as e:
         print(str(e))
         raise e
-   
 
 
 if __name__ == "__main__":

@@ -75,7 +75,7 @@ def parse_cards(item):
         list[dict]: all finded card-object item parameters
     """
     _result = []
-    curr_page = item.get('content')
+    curr_page = item.get("content")
     product_cards = curr_page.select("div.item_info")
     for product in product_cards:
         name = product.select_one("div.item-title>a>span").get_text()
