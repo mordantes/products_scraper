@@ -85,7 +85,7 @@ class Manager:
 
     #!TODO unwrap normalize method into separate function
     @staticmethod
-    def to_click(df: pd.DataFrame):
+    def to_click(df: pd.DataFrame, format: Optional[str] = None):
         """Load into Clickhouse DWH input dataframe
 
         Args:
@@ -96,7 +96,7 @@ class Manager:
                 user=C_USER, password=C_PWD, host=C_HOST, port=C_PORT, database=C_DB
             )
             df["offer"] = df["offer"].fillna(0).astype(int)
-            df["parse_date"] = pd.to_datetime(df["parse_date"], format="%Y-%m-%d")
+            df["parse_date"] = pd.to_datetime(df["parse_date"], format= format or "%Y-%m-%d")
 
             cli.insert_dataframe(
                 f"insert into {C_DB}.{C_TABLE} (name, price, offer, shop_name, category, sub_category, parse_date ) VALUES",

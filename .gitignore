@@ -10,3 +10,6 @@ test.py
 to_click.py
 *.xml
 /*idea
+*.pkl
+*.ipynb
+.DS_Store

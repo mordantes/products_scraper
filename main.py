@@ -19,8 +19,8 @@ def main():
 
     Manager.save_to_file(array_spread(spreaded_results), "all_in_one")
 
-    # df = pd.DataFrame(spreaded_results, columns=result_columns)
-    # Manager.to_click(df)
+    df = pd.DataFrame(spreaded_results, columns=result_columns)
+    Manager.to_click(df)
 
 
 if __name__ == "__main__":
