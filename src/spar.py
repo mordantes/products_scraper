@@ -94,7 +94,7 @@ def parse_cards(item):
                 sub_category=item["sub_category"].lower(),  # check if validated ^
                 price=Manager.extract_price(prices[0]),
                 offer=Manager.extract_price(prices[1]) if len(prices) == 2 else None,
-                shopName=item["shop_name"],
+                shop_name=item["shop_name"],
                 parse_date=datetime.now().strftime("%Y-%m-%d"),
             )
         )
