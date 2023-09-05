@@ -161,7 +161,7 @@ def fetch_concurrent_process(url_list: list[dict]) -> list[dict]:
     return done
 
 
-def fetch_concurrent_thread(url_list: list[dict]) -> list[dict]:
+def fetch_concurrent_thread(url_list: list[dict], callback : Callable) -> list[dict]:
     """Run scraper func by every item in list in thread pool
 
     Args:
@@ -174,12 +174,20 @@ def fetch_concurrent_thread(url_list: list[dict]) -> list[dict]:
         done = worker.map(get_data_sync, url_list)
 
     done = [item for item in done if item is not None]
+    result = [] 
 
     for item in done:
         page = BeautifulSoup(item.get("content"), features="lxml")
         item.update(content=page)
+        data = callback(item)
+        if isinstance(data, list) :
+            result += data 
+        else:
+            result.append(data)
+        del item
+        
 
-    return done
+    return result
 
 
 def array_spread(l: list[list]) -> list:

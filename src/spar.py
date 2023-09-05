@@ -113,11 +113,8 @@ def parse_spar():
     # parse from html list of category-URL's
     menu = get_menu(page)
     # fetch html content from every URL's menu
-    product_pages = fetch_concurrent_thread(menu)
+    result = fetch_concurrent_thread(menu, parse_cards)
     # parse from list of html-content page's product's data
-    result = [parse_cards(i) for i in product_pages]
-    # spread list of lists into single one
-    result = array_spread(result)
     return result
 
 

@@ -136,18 +136,12 @@ def parse_cifrus():
     menu = get_menu(URL)
     # we dedicate that every page from menu have an additional one in their content
     # and we must to test it and get sub_menu arrays from every page
-    sub_pages = fetch_concurrent_thread(menu)
-    # iter by fetched items and get href of every subcategory_item to result list
-    extracted_sub_hrefs = [get_true_hrefs(item) for item in sub_pages]
-    # extract list's from list into new single one
-    hrefs = array_spread(extracted_sub_hrefs)
-    # get content from all pages from ``href`` list
-    pages = fetch_concurrent_thread(hrefs)
-    # parse product's categories into result list
-    data = [parse_card(item) for item in pages]
-    # another one spread list of lists into single result one
-    data = array_spread(data)
-    return data
+    # and extract page data
+    hrefs = fetch_concurrent_thread(menu, get_true_hrefs)
+    # get content from all pages and extract cards data
+    pages = fetch_concurrent_thread(hrefs, parse_card)
+    
+    return pages
 
 
 if __name__ == "__main__":

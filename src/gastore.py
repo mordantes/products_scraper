@@ -105,14 +105,8 @@ def parse_gastore():
         result = []
         # let list of category-url pages to get product's datafrom them
         menu = get_menu()
-        # fetch a html-content from them
-        product_pages = fetch_concurrent_thread(menu)
-        # parse product's data from html
-        for item in product_pages:
-            result.append(parse_card(item))
-        # spread list of lists to single one
-        result = array_spread(result)
-
+        # fetch a html-content from them and extract product data
+        result = fetch_concurrent_thread(menu, callback=parse_card)
         return result
     # sometimes eraise errors, to categorise it BE ><
     except BaseException as e:
